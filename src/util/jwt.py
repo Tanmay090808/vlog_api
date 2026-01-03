@@ -63,3 +63,13 @@ def get_token_expiry(token_type: str = "access") -> datetime:
         return datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRES_IN_MINUTES)
     else:  # refresh
         return datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRES_IN_DAYS)
+
+def decode_access_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]) #type:ignore
+        return payload
+    except JWTError:
+        raise HTTPException(
+            status_code=401,
+            detail="Token is invalid or expired"
+        )
