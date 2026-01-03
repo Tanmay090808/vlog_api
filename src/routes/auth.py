@@ -2,13 +2,14 @@ from fastapi import APIRouter , HTTPException , Depends ,status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session 
 from dotenv import load_dotenv 
-from datetime import timedelta , timezone
+from datetime import timedelta , timezone , datetime
 import os 
 
 from ..db.database import get_db , engine
 from ..db import schemas , models
 from ..util.jwt import create_access_token , create_refresh_token
 from ..util.password_hashing import hash_password , verify_hash_password
+from ..util.oauth2  import security
 
 router = APIRouter(
     prefix="/user/regirster",
@@ -29,27 +30,16 @@ def regirster_user(user:schemas.userCreate, db:Session = Depends(get_db)):
     
     hashed_password = hash_password(user.password)
 
-    print(f"DEBUG - user object: {user}")
-    print(f"DEBUG - user.username: {user.username}")
-    print(f"DEBUG - user.email: {user.email}")
-    print(f"DEBUG - type: {type(user)}")
 
     new_user = models.User(
         username = user.username,
         email = user.email,
         hashed_password = hashed_password
     )
-    print(f"DEBUG - Created user object: {new_user}")
-    print(f"DEBUG - Username: {new_user.username}")
     
-    db.add(new_user)
-    print("DEBUG - Added to session")
-    
-    db.commit()
-    print("DEBUG - Committed to database")
-    
+    db.add(new_user)    
+    db.commit()    
     db.refresh(new_user)
-    print(f"DEBUG - User ID after refresh: {new_user.id}")
 
     access_token = create_access_token({"sub":str(new_user.id)})
     refresh_token= create_access_token({"sub":str(new_user.id)})
@@ -58,4 +48,48 @@ def regirster_user(user:schemas.userCreate, db:Session = Depends(get_db)):
         "access_token":access_token,
         "refresh_token":refresh_token,
         "token_type":"bearer"
+    }
+
+@router.post("/user/login",response_model=schemas.TokenResponse)
+def login_user(form_data:OAuth2PasswordRequestForm =Depends(),db:Session = Depends(get_db) ):
+    user = db.query(models.User).filter(models.User.email == form_data.username).first()
+
+    if not user :
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found"
+        )
+    
+    is_valid = verify_hash_password(form_data.password , str(user.hashed_password))
+
+    if not is_valid :
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password"
+        )
+    
+    payload = {
+        "user_id":user.id,
+        "username":user.username
+    }
+
+    access_token = create_access_token(payload)
+    refresh_token_string = create_refresh_token({"sub": user.id})
+    expires_at = datetime.utcnow() + timedelta(days=7)
+    expires_at = datetime.utcnow() + timedelta(days=7)
+
+    new_refresh_token = models.RefreshToken(
+        user_id = user.id,
+        token = refresh_token_string,
+        expires_at = expires_at,
+        is_revoked = False,
+        device_logged_in ="web"
+    )
+
+    db.add(new_refresh_token)
+    db.commit()
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token_string,
+        "token_type": "bearer"
     }
