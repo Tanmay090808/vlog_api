@@ -6,10 +6,6 @@ import os
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-print("=" * 70)
-print(f"LOADED DATABASE_URL: '{DATABASE_URL}'")
-print(f"Expected: postgresql://postgres:ruby@localhost:5432/fastapi_db")
-print("=" * 70)
 
 if not DATABASE_URL:
     raise ValueError("DATABASE_ERROR")
