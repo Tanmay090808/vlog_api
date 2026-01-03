@@ -49,3 +49,31 @@ class TokenResponse(BaseModel):
 
 class TokenRefresh(BaseModel):
     refreshtoken:str
+
+# Blog Section
+
+class BlogCreate(BaseModel):
+    title: str
+    content: str
+
+class BlogResponse(BaseModel):
+    id: int
+    title: str
+    content: str
+    author_id: int
+
+    class Config:
+        from_attribute = True
+
+# comment schema
+
+class CommentCreate(BaseModel):
+    content: str
+
+class CommentResponse(BaseModel):
+    id: int
+    content: str
+    user_id: int
+
+    class Config:
+        from_attribute = True
