@@ -16,6 +16,8 @@ class User(Base):
 
     refresh_token = relationship("RefreshToken",back_populates="users")
     posts = relationship("Posts", back_populates="author")
+    blogs = relationship("Blog", back_populates="author")  # ← lowercase 'blogs'
+
 
 class RefreshToken(Base):
     __tablename__ = "refresh_token"
@@ -44,26 +46,25 @@ class Posts(Base):
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
 class Blog(Base):
-    __tablename__="Blogs"
+    __tablename__="blogs"
     id:Mapped[int] = mapped_column(Integer , primary_key=True , index=True)
-    titile:Mapped[str] = mapped_column(String(255) , nullable=False)
+    title:Mapped[str] = mapped_column(String(255) , nullable=False)
     content:Mapped[Text]= mapped_column(Text ,nullable=False )
 
     author_id:Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
 
-    author = relationship(User,back_populates="Blog")
+    author = relationship(User,back_populates="blogs")
 
-    comments = relationship("Comment" , back_populates= "Blogs")
+    comments = relationship("Comment" , back_populates= "blog")
 
 class Comment(Base):
     __tablename__="comments"
 
-    id:Mapped[int] =mapped_column(Integer,primary_key=True,index=True)
-    content:Mapped[Text] =mapped_column(Text, nullable=False)
-
-    user_id:Mapped[int]= mapped_column(Integer , ForeignKey("users.id"))
-    user_id:Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
-
-    Blogs = relationship("Blog",back_populates="comments")
-    user = relationship("User")
-
+    id: Mapped[int] = mapped_column(primary_key=True)
+    content: Mapped[str] = mapped_column(Text)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    blog_id: Mapped[int] = mapped_column(ForeignKey("blogs.id"))  # ← Do you have this line?
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    
+    blog: Mapped["Blog"] = relationship(back_populates="comments")
+    user: Mapped["User"] = relationship()

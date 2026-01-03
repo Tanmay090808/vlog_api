@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session 
 from dotenv import load_dotenv 
 from datetime import timedelta , timezone , datetime
-import os 
+from typing import List
 
 from ..db.database import get_db , engine
 from ..db import schemas , models
@@ -30,3 +30,14 @@ def create_blog(blog:schemas.BlogCreate , db:Session= Depends(get_db),
     db.commit()
     db.refresh(new_blog)
     return new_blog
+
+@router.get("/blogs", response_model=List[schemas.BlogResponse])
+def get_all_blogs(db: Session = Depends(get_db)):
+    return db.query(models.Blog).all()
+
+@router.get("/blogs/{blog_id}")
+def get_blog(blog_id: int, db: Session = Depends(get_db)):
+    blog = db.query(models.Blog).filter(models.Blog.id == blog_id).first()
+    if not blog:
+        raise HTTPException(404, "Blog not found")
+    return blog
