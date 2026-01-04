@@ -10,6 +10,7 @@ from ..db import schemas , models
 from ..util.jwt import create_access_token , create_refresh_token
 from ..util.password_hashing import hash_password , verify_hash_password
 from ..util.oauth2  import security
+from ..util.dependencies import get_current_user
 
 router = APIRouter(
     prefix="/user/regirster",
@@ -93,3 +94,9 @@ def login_user(form_data:OAuth2PasswordRequestForm =Depends(),db:Session = Depen
         "refresh_token": refresh_token_string,
         "token_type": "bearer"
     }
+@router.get("/user/get-current")
+def get_logged_in_user(
+    current_user: models.User = Depends(get_current_user),  # Accept User object
+):
+    # current_user is already the User object, just return it
+    return current_user
