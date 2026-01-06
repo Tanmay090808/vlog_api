@@ -100,3 +100,24 @@ def get_logged_in_user(
 ):
     # current_user is already the User object, just return it
     return current_user
+
+
+@router.put("/user/change-password/{email}")
+def change_password(
+    email: str,
+    password_in: schemas.change_password_in,
+    db: Session = Depends(get_db),
+):
+    user = db.query(models.User).filter(
+        models.User.email == email
+    ).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.hashed_password = hash_password(password_in.new_password)
+
+    db.commit()        # works
+    db.refresh(user)   # works
+
+    return {"message": "Password updated"}

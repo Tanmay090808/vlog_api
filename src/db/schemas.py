@@ -65,6 +65,13 @@ class BlogResponse(BaseModel):
     class Config:
         from_attribute = True
 
+# change password
+class change_password_in(BaseModel):
+    old_password:str 
+    new_password:str
+
+class changed_password_out(BaseModel):
+    new_password:str
 # comment schema
 
 class CommentCreate(BaseModel):
