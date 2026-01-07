@@ -7,10 +7,11 @@ import os
 
 from ..db.database import get_db , engine
 from ..db import schemas , models
-from ..util.jwt import create_access_token , create_refresh_token
+from ..util.jwt import create_access_token , create_refresh_token , create_email_verification_token
 from ..util.password_hashing import hash_password , verify_hash_password
 from ..util.oauth2  import security
 from ..util.dependencies import get_current_user
+from ..util.email_verification import send_verification_email
 
 router = APIRouter(
     prefix="/user/regirster",
@@ -41,6 +42,10 @@ def regirster_user(user:schemas.userCreate, db:Session = Depends(get_db)):
     db.add(new_user)    
     db.commit()    
     db.refresh(new_user)
+
+
+    token = create_email_verification_token(new_user.id)
+    send_verification_email(user.email, token)
 
     access_token = create_access_token({"sub":str(new_user.id)})
     refresh_token= create_access_token({"sub":str(new_user.id)})

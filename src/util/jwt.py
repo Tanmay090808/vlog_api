@@ -73,3 +73,4 @@ def decode_access_token(token: str):
             status_code=401,
             detail="Token is invalid or expired"
         )
+    
