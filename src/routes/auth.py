@@ -42,15 +42,17 @@ def regirster_user(user:schemas.userCreate, db:Session = Depends(get_db)):
     db.add(new_user)    
     db.commit()    
     db.refresh(new_user)
-
+     # Generate tokens
+    access_token = create_access_token({"sub": user.email})
+    refresh_token = create_refresh_token({"sub": user.email})
     
-    token = create_email_verification_token(new_user.id)
-
-    # 4️⃣ Send verification email
-    send_verification_email(user.email, token)
-
-    # 5️⃣ Return response (NO TOKEN)
+    # Send verification email (but let them use the app)
+    send_verification_email(user.email,token="")
+    
     return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
         "message": "Registration successful. Please verify your email."
     }
 

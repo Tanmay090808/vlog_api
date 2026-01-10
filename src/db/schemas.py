@@ -45,7 +45,8 @@ class UserOut(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str
+    token_type: str = "bearer"
+    message: str
 
 class TokenRefresh(BaseModel):
     refreshtoken:str
