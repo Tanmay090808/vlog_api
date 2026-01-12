@@ -74,12 +74,10 @@ def decode_access_token(token: str):
             detail="Token is invalid or expired"
         )
     
-def create_email_verification_token(user_id:int)->str:
-
+def create_email_verification_token(user_id: int) -> str:
     payload = {
-        "user_id":user_id,
-        "purposer":"email verification",
-        "exp":datetime.utcnow() + timedelta(minutes=30)
+        "user_id": user_id,
+        "purpose": "email_verification",
+        "exp": datetime.utcnow() + timedelta(minutes=30)
     }
-    token = jwt.encode(payload , SECRET_KEY , algorithm=ALGORITHM) #type:ignore
-    return token 
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)

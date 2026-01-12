@@ -13,21 +13,33 @@ if not EMAIL_FROM or not EMAIL_PASSWORD:
     raise ValueError("EMAIL_FROM and EMAIL_PASSWORD must be set in environment variables")
 
 def send_verification_email(to_email, token):
-    try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()  
+    if not token:
+        raise ValueError("Verification token is empty")
+
+    verification_link = (
+        f"http://localhost:8000/auth/verify-email"
+        f"?token={token}"
+    )
+
+    body = f"""
+Hello,
+
+Please click the link below to verify your email address:
+
+{verification_link}
+
+If you did not create this account, please ignore this email.
+
+Thanks,
+Vlog API Team
+"""
+
+    message = MIMEText(body, "plain")
+    message["Subject"] = "Verify your email"
+    message["From"] = EMAIL_FROM
+    message["To"] = to_email
+
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server: #type:ignore
+        server.starttls()
         server.login(EMAIL_FROM, EMAIL_PASSWORD)
-        msg = MIMEMultipart()
-        msg['From'] = EMAIL_FROM
-        msg['To'] = to_email
-        msg['Subject'] = "Verify your email"
-        
-        body = f"Your verification token is: {token}"
-        msg.attach(MIMEText(body, 'plain'))
-        
-        server.send_message(msg)
-        server.quit()
-        print(f"Email sent successfully to {to_email}")
-    except Exception as e:
-        print(f"Failed to send email: {e}")
-        raise
+        server.send_message(message)

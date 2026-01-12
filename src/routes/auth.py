@@ -2,6 +2,7 @@ from fastapi import APIRouter , HTTPException , Depends ,status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session 
 from dotenv import load_dotenv 
+from jose import JWTError ,jwt
 from datetime import timedelta , timezone , datetime
 import os 
 
@@ -12,47 +13,46 @@ from ..util.password_hashing import hash_password , verify_hash_password
 from ..util.oauth2  import security
 from ..util.dependencies import get_current_user
 from ..util.email_verification import send_verification_email
+from ..util import jwt
 
 router = APIRouter(
     prefix="/user/regirster",
     tags=["AUTHENTICATION"]
 )
 
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = "HS256"
 
-@router.post("/regirster",response_model=schemas.TokenResponse)
-def regirster_user(user:schemas.userCreate, db:Session = Depends(get_db)):
-    exists_username = db.query(models.User).filter(models.User.username == user.username).first()
-    exists_email = db.query(models.User).filter(models.User.email == user.email).first()
-
-    if exists_username or exists_email :
+@router.post("/register")
+def register_user(
+    user: schemas.userCreate,
+    db: Session = Depends(get_db)
+):
+    if db.query(models.User).filter(
+        (models.User.username == user.username) |
+        (models.User.email == user.email)
+    ).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="USER ALREADY EXISTS"
+            detail="User already exists"
         )
-    
-    hashed_password = hash_password(user.password)
-
 
     new_user = models.User(
-        username = user.username,
-        email = user.email,
-        hashed_password = hashed_password
+        username=user.username,
+        email=user.email,
+        hashed_password=hash_password(user.password),
+        is_verified=False
     )
-    
-    db.add(new_user)    
-    db.commit()    
+
+    db.add(new_user)
+    db.commit()
     db.refresh(new_user)
-     # Generate tokens
-    access_token = create_access_token({"sub": user.email})
-    refresh_token = create_refresh_token({"sub": user.email})
-    
-    # Send verification email (but let them use the app)
-    send_verification_email(user.email,token="")
-    
+
+    verification_token = create_email_verification_token(new_user.id)
+
+    send_verification_email(new_user.email, verification_token)
+
     return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
         "message": "Registration successful. Please verify your email."
     }
 
@@ -99,6 +99,32 @@ def login_user(form_data:OAuth2PasswordRequestForm =Depends(),db:Session = Depen
         "refresh_token": refresh_token_string,
         "token_type": "bearer"
     }
+
+@router.get("/verify-email")
+def verify_email(token: str, db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+        if payload.get("purpose") != "email_verification":
+            raise HTTPException(status_code=400, detail="Invalid verification token")
+
+        user_id = payload.get("user_id")
+
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Token expired or invalid")
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.is_verified:
+        return {"message": "Email already verified"}
+
+    user.is_verified = True
+    db.commit()
+
+    return {"message": "Email verified successfully"}
+
 @router.get("/user/get-current")
 def get_logged_in_user(
     current_user: models.User = Depends(get_current_user),  # Accept User object
