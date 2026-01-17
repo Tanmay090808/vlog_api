@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from jose import JWTError ,jwt
 from datetime import timedelta , timezone , datetime
 import os 
+from urllib.parse import unquote
+
 
 from ..db.database import get_db , engine
 from ..db import schemas , models
@@ -16,7 +18,7 @@ from ..util.email_verification import send_verification_email
 from ..util import jwt_utils
 
 router = APIRouter(
-    prefix="/user/regirster",
+    prefix="/auth",
     tags=["AUTHENTICATION"]
 )
 
@@ -104,6 +106,7 @@ def login_user(form_data:OAuth2PasswordRequestForm =Depends(),db:Session = Depen
 
 @router.get("/verify-email")
 def verify_email(token: str, db: Session = Depends(get_db)):
+    token = unquote(token)
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]) #type:ignore
 
@@ -124,7 +127,6 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
     user.is_verified = True
     db.commit()
-    print("RAW TOKEN RECEIVED:", token)
 
     return {"message": "Email verified successfully"}
 
