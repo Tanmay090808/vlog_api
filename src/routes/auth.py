@@ -8,12 +8,12 @@ import os
 
 from ..db.database import get_db , engine
 from ..db import schemas , models
-from ..util.jwt import create_access_token , create_refresh_token , create_email_verification_token
+from ..util.jwt_utils import create_access_token , create_refresh_token , create_email_verification_token
 from ..util.password_hashing import hash_password , verify_hash_password
 from ..util.oauth2  import security
 from ..util.dependencies import get_current_user
 from ..util.email_verification import send_verification_email
-from ..util import jwt
+from ..util import jwt_utils
 
 router = APIRouter(
     prefix="/user/regirster",
@@ -22,6 +22,8 @@ router = APIRouter(
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
+load_dotenv()
+
 
 @router.post("/register")
 def register_user(
@@ -103,7 +105,7 @@ def login_user(form_data:OAuth2PasswordRequestForm =Depends(),db:Session = Depen
 @router.get("/verify-email")
 def verify_email(token: str, db: Session = Depends(get_db)):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]) #type:ignore
 
         if payload.get("purpose") != "email_verification":
             raise HTTPException(status_code=400, detail="Invalid verification token")
@@ -122,6 +124,7 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
     user.is_verified = True
     db.commit()
+    print("RAW TOKEN RECEIVED:", token)
 
     return {"message": "Email verified successfully"}
 

@@ -9,7 +9,7 @@ from typing import Optional , Any
 from ..db import schemas , models
 from ..util.oauth2 import security
 from ..db.database import get_db
-from ..util.jwt import decode_access_token
+from .jwt_utils import decode_access_token
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),

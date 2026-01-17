@@ -7,7 +7,7 @@ from typing import List
 
 from ..db.database import get_db , engine
 from ..db import schemas , models
-from ..util.jwt import create_access_token , create_refresh_token
+from ..util.jwt_utils import create_access_token , create_refresh_token
 from ..util.password_hashing import hash_password , verify_hash_password
 from ..util.oauth2  import security
 from ..util.dependencies import get_current_user
